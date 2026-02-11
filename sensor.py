@@ -54,6 +54,7 @@ def setup_platform(
     add_entities([MeteoSensorTemp(domService, meteoSensors, "External Temperature")])
     add_entities([MeteoSensorLux(domService, meteoSensors, "External Illuminance")])
     add_entities([MeteoSensorWind(domService, meteoSensors, "External Wind Speed")])
+    add_entities([MeteoSensorRain(domService, meteoSensors, "External Rain")])
 
 class MeteoSensorWind(SensorEntity):
     """Representation of a Sensor."""
@@ -141,6 +142,36 @@ class MeteoSensorTemp(SensorEntity):
         _LOGGER.info(f"External temperature: {avgTemp}")
         self._attr_native_value = avgTemp
 
+class MeteoSensorRain(SensorEntity):
+    """Representation of a Sensor."""
+
+    _attr_name = "Meteo Raining"
+    _attr_native_unit_of_measurement = None
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_state_class = None
+    options = ["Rain", "No Rain"]
+
+    def __init__(self, domService: DominoService, meteos: list[Meteo], name: str) -> None:
+        """Initialize the sensor."""
+        self._domService = domService
+        self._meteos = meteos
+        self._attr_name = name
+
+    def update(self) -> None:
+        """Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        isRaining = False
+        for meteo in self._meteos:
+          status = meteo.status(self._domService)
+          _LOGGER.info(f"Meteo status: {status}")
+          if (status.getIsRaining()):
+            isRaining = True
+            break
+        _LOGGER.info(f"External raining: {isRaining}")
+        self._attr_native_value = "Rain" if isRaining else "No Rain"
+    
 class TempSensor(SensorEntity):
     """Representation of a Sensor."""
 
