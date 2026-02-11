@@ -6,9 +6,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
+from .dominoService import DominoService
+from .const import CONF_COM_PORT, CONF_COM_BAUD
+
 # TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
-_PLATFORMS: list[Platform] = [Platform.SENSOR]
+_PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.LIGHT]
 
 # TODO Create ConfigEntry type alias with API object
 # TODO Rename type alias and update all entry annotations
@@ -28,6 +31,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: DominoConfigEntry) -> bo
     # TODO 2. Validate the API connection (and authentication)
     # TODO 3. Store an API object for your platforms to access
     # entry.runtime_data = MyAPI(...)
+
+    comPort = entry.data[CONF_COM_PORT]
+    comBaud = entry.data[CONF_COM_BAUD]
+    api = DominoService(comPort, comBaud)
+    entry.runtime_data = api 
 
     await hass.config_entries.async_forward_entry_setups(entry, _PLATFORMS)
 

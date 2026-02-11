@@ -1,9 +1,11 @@
 {
   "domain": "domino_hub",
   "name": "Domino Hub",
-  "config_flow": false,
+  "config_flow": true,
   "dependencies": [],
   "iot_class": "local_polling",
   "requirements": ["pyserial"],
-  "version": "0.0.1"
+  "version": "0.0.1",
+  "integration_type": "hub",
+  "platforms": ["sensor", "light"]
 }

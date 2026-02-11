@@ -2,10 +2,6 @@
 from __future__ import annotations
 
 import logging
-import voluptuous as vol
-
-import homeassistant.helpers.config_validation as cv
-from homeassistant.components.light import (PLATFORM_SCHEMA)
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -15,46 +11,79 @@ from homeassistant.components.sensor import (
 from homeassistant.const import UnitOfTemperature, UnitOfSpeed
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from .const import DOMAIN, CONF_COM_PORT, CONF_COM_BAUD, COM_BAUD_DEFAULT
+from .const import DOMAIN
 from .dominoService import DominoService, Meteo, RoomTemperature
 
 _LOGGER = logging.getLogger(__name__)
 
-# Validation of the user's configuration
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_COM_PORT, default='/dev/ttyUSB0'): cv.string,
-    vol.Optional(CONF_COM_BAUD, default=COM_BAUD_DEFAULT): cv.positive_int
-})
-
-def setup_platform(
+async def async_setup_entry(
     hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None
+    entry,
+    async_add_entities: AddEntitiesCallback
 ) -> None:
-    comPort = '/dev/ttyUSB0'
-    if (CONF_COM_PORT in config):
-      comPort = config[CONF_COM_PORT]
+    """Set up Domino sensors from a config entry."""
 
-    comBaud = config[CONF_COM_BAUD]
+    # Retrieve the API instance created in __init__.py
+    domService: DominoService = entry.runtime_data
+
+    sensors = []
+
+    # Room temperature sensors
+    roomTemps = [
+      [30, "Cucina Temperature"],
+      [35, "Room2 Temperature"],
+      [40, "Camera Leti Temperature"],
+      [45, "Camera Matrimoniale Temperature"],
+      [50, "Room5 Temperature"],
+      [75, "Room6 Temperature"]
+    ]
+    for temp in roomTemps:
+      sensors.append(TempSensor(domService, RoomTemperature(temp[0]), temp[1]))
+
+    #add_entities([TempSensor(domService, RoomTemperature(30), "Cucina Temperature")])
+    #add_entities([TempSensor(domService, RoomTemperature(35), "Room2 Temperature")])
+    #add_entities([TempSensor(domService, RoomTemperature(40), "Camera Leti Temperature")])
+    #add_entities([TempSensor(domService, RoomTemperature(45), "Camera Matrimoniale Temperature")])
+    #add_entities([TempSensor(domService, RoomTemperature(50), "Room5 Temperature")])
+    #add_entities([TempSensor(domService, RoomTemperature(75), "Room6 Temperature")])
+
+    # Meteo sensors
+    meteos = [Meteo(80), Meteo(90)]
+    sensors.append(MeteoSensorTemp(domService, meteos, "External Temperature"))
+    sensors.append(MeteoSensorLux(domService, meteos, "External Illuminance"))
+    sensors.append(MeteoSensorWind(domService, meteos, "External Wind Speed"))
+    sensors.append(MeteoSensorRain(domService, meteos, "External Rain"))
+
+    async_add_entities(sensors)
+
+# def setup_platform(
+#     hass: HomeAssistant,
+#     config: ConfigType,
+#     add_entities: AddEntitiesCallback,
+#     discovery_info: DiscoveryInfoType | None = None
+# ) -> None:
+#     comPort = '/dev/ttyUSB0'
+#     if (CONF_COM_PORT in config):
+#       comPort = config[CONF_COM_PORT]
+
+#     comBaud = config[CONF_COM_BAUD]
     
-    _LOGGER.info(f"comPort: {comPort}, comBaud: {comBaud}")
+#     _LOGGER.info(f"comPort: {comPort}, comBaud: {comBaud}")
 
-    domService = DominoService(comPort, comBaud)
-    """Set up the sensor platform."""
-    add_entities([TempSensor(domService, RoomTemperature(30), "Room1 Temperature")])
-    add_entities([TempSensor(domService, RoomTemperature(35), "Room2 Temperature")])
-    add_entities([TempSensor(domService, RoomTemperature(40), "CameraLeti Temperature")])
-    add_entities([TempSensor(domService, RoomTemperature(45), "Room4 Temperature")])
-    add_entities([TempSensor(domService, RoomTemperature(50), "Room5 Temperature")])
-    add_entities([TempSensor(domService, RoomTemperature(75), "Room6 Temperature")])
-    meteoSensors = [Meteo(80), Meteo(90)]
-    add_entities([MeteoSensorTemp(domService, meteoSensors, "External Temperature")])
-    add_entities([MeteoSensorLux(domService, meteoSensors, "External Illuminance")])
-    add_entities([MeteoSensorWind(domService, meteoSensors, "External Wind Speed")])
-    add_entities([MeteoSensorRain(domService, meteoSensors, "External Rain")])
+#     domService = DominoService(comPort, comBaud)
+#     """Set up the sensor platform."""
+#     add_entities([TempSensor(domService, RoomTemperature(30), "Cucina Temperature")])
+#     add_entities([TempSensor(domService, RoomTemperature(35), "Room2 Temperature")])
+#     add_entities([TempSensor(domService, RoomTemperature(40), "Camera Leti Temperature")])
+#     add_entities([TempSensor(domService, RoomTemperature(45), "Camera Matrimoniale Temperature")])
+#     add_entities([TempSensor(domService, RoomTemperature(50), "Room5 Temperature")])
+#     add_entities([TempSensor(domService, RoomTemperature(75), "Room6 Temperature")])
+#     meteoSensors = [Meteo(80), Meteo(90)]
+#     add_entities([MeteoSensorTemp(domService, meteoSensors, "External Temperature")])
+#     add_entities([MeteoSensorLux(domService, meteoSensors, "External Illuminance")])
+#     add_entities([MeteoSensorWind(domService, meteoSensors, "External Wind Speed")])
+#     add_entities([MeteoSensorRain(domService, meteoSensors, "External Rain")])
 
 class MeteoSensorWind(SensorEntity):
     """Representation of a Sensor."""

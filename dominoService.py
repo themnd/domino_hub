@@ -1,16 +1,18 @@
 import logging
 import serial
 import time
-
+import threading
 
 _LOGGER = logging.getLogger(__name__)
 
+_exchange_lock = threading.Lock() 
+
 def readMessage(ser):
-    maxWait = 10
+    maxWait = 20
     bytesToRead = ser.inWaiting()
     #print ('bytesToRead: ' + str(bytesToRead))
     while (bytesToRead == 0):
-      time.sleep(1)
+      time.sleep(0.5)
       bytesToRead = ser.inWaiting()
       #print ('bytesToRead: ' + str(bytesToRead))
       maxWait -= 1
@@ -62,16 +64,17 @@ def sendMessage(ser, msg):
     return ser.write(msg)
 
 def exchangeMsg(ser, msg):
-    sendMessage(ser, msg)
+    with _exchange_lock:
+      sendMessage(ser, msg)
 
-    ans = readMessage(ser)
-    #if (ord(ans[2]) == 0x0 and ord(ans[5]) == 0xf0):
-    if (ans[2] == 0x0 and ans[5] == 0xf0):
-      return None
-    if (ans[2] == 0x0 and ans[5] == 0xff):
-      return None
-    dumpMessage(ans)
-    return ans
+      ans = readMessage(ser)
+      #if (ord(ans[2]) == 0x0 and ord(ans[5]) == 0xf0):
+      if (ans[2] == 0x0 and ans[5] == 0xf0):
+        return None
+      if (ans[2] == 0x0 and ans[5] == 0xff):
+        return None
+      dumpMessage(ans)
+      return ans
 
 def getMsgData(ans):
   return ans[4], ans[5]
@@ -212,3 +215,31 @@ class Meteo:
     def __str__(self):
       return "MeteoStatus: " + str(self.getCelsius()) + "°C / " + str(self.getKelvin()) + "K" + " / " + str(self.getLux()) + " lux" + " / " + str(self.getWind()) + " m/s" + " / " + ("raining" if self.isRaining else "not raining") + " / " + ("twilight" if self.isTwilight else "day")  
 
+class Dimmer:
+  def __init__(self, mod, num = None):
+    self.mod = mod
+    self.num = num
+
+  def status(self, svc: DominoService):
+    ser = svc.open()
+    try:
+      return self.readStatus(ser)
+    finally:
+      svc.close()
+
+  def readStatus(self, ser):
+    d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x31))
+    b1, b2 = getMsgData(d1)
+    _LOGGER.info(f"Dimmer status: {hex(b1)} - {hex(b2)}")
+    return b2 if b1 == 0 else 0
+
+  def setLight(self, svc: DominoService, pct):
+    ser = svc.open()
+    try:
+      return self._setLight(ser, pct)
+    finally:
+      svc.close()
+
+  def _setLight(self, ser, pct):
+    pct = min(max(0, pct), 100)
+    return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = 0, d2 = pct))
