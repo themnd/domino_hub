@@ -80,11 +80,49 @@ def evaluteMsgAsLong(ans):
   (d1, d2) = getMsgData(ans)
   return (d1 << 8) + d2
 
+class DominoService:
+  def __init__(self, com_port, com_baud):
+    self.com_port = com_port
+    self.com_baud = com_baud
+    self.ser = None
+    self.openCount = 0
+    _LOGGER.info(f"DominoService initialized with com_port: {com_port}, com_baud: {com_baud}")
+  
+  def open(self):
+    if (self.ser is None):
+      self.ser = serial.Serial(self.com_port, baudrate = self.com_baud,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS,
+            rtscts=False,
+            dsrdtr=False,
+            xonxoff=False,
+            timeout=5)
+    self.openCount += 1
+    _LOGGER.debug(f"DominoService open called. openCount: {self.openCount}")
+    return self.ser
+
+  def close(self):
+    if (self.ser is not None):
+      self.openCount -= 1
+      _LOGGER.debug(f"DominoService close called. openCount: {self.openCount}")
+      if (self.openCount == 0):
+        self.ser.close()
+        self.ser = None
+        _LOGGER.debug("DominoService serial connection closed.")
+
 class RoomTemperature:
   def __init__(self, mod):
     self.mod = mod
   
-  def status(self, ser):
+  def status(self, svc: DominoService):
+    ser = svc.open()
+    try:
+      return self.readStatus(ser)
+    finally:
+      svc.close()
+  
+  def readStatus(self, ser):
     #d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x30))
     d2 = exchangeMsg(ser, sendReqStatus(self.mod + 1, 0x30))
     kelvin = evaluteMsgAsLong(d2)
@@ -108,8 +146,21 @@ class Meteo:
   def __init__(self, mod, num = None):
     self.mod = mod
     self.num = num
+    self.lastStatus = None
+    self.lastStatusTime = 0
   
-  def status(self, ser):
+  def status(self, svc: DominoService):
+    statusTime = int(round(time.time()))
+    if ((self.lastStatus is None) or ((statusTime - self.lastStatusTime) > 60)):
+      ser = svc.open()
+      try:
+        self.lastStatus = self.readStatus(ser)
+        self.lastStatusTime = statusTime
+      finally:
+        svc.close()
+    return self.lastStatus
+  
+  def readStatus(self, ser):
     # contains temperature in kelvin (x 10)
     d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x30))
     kelvin = evaluteMsgAsLong(d1)
@@ -161,33 +212,3 @@ class Meteo:
     def __str__(self):
       return "MeteoStatus: " + str(self.getCelsius()) + "°C / " + str(self.getKelvin()) + "K" + " / " + str(self.getLux()) + " lux" + " / " + str(self.getWind()) + " m/s" + " / " + ("raining" if self.isRaining else "not raining") + " / " + ("twilight" if self.isTwilight else "day")  
 
-class DominoService:
-  def __init__(self, com_port, com_baud):
-    self.com_port = com_port
-    self.com_baud = com_baud
-    self.ser = None
-    self.openCount = 0
-    _LOGGER.info(f"DominoService initialized with com_port: {com_port}, com_baud: {com_baud}")
-  
-  def open(self):
-    if (self.ser is None):
-      self.ser = serial.Serial(self.com_port, baudrate = self.com_baud,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS,
-            rtscts=False,
-            dsrdtr=False,
-            xonxoff=False,
-            timeout=5)
-    self.openCount += 1
-    _LOGGER.debug(f"DominoService open called. openCount: {self.openCount}")
-    return self.ser
-
-  def close(self):
-    if (self.ser is not None):
-      self.openCount -= 1
-      _LOGGER.debug(f"DominoService close called. openCount: {self.openCount}")
-      if (self.openCount == 0):
-        self.ser.close()
-        self.ser = None
-        _LOGGER.debug("DominoService serial connection closed.")

@@ -44,15 +44,16 @@ def setup_platform(
 
     domService = DominoService(comPort, comBaud)
     """Set up the sensor platform."""
-    add_entities([ExampleSensor(domService, RoomTemperature(30), "Room1 Temperature")])
-    add_entities([ExampleSensor(domService, RoomTemperature(35), "Room2 Temperature")])
-    add_entities([ExampleSensor(domService, RoomTemperature(40), "CameraLeti Temperature")])
-    add_entities([ExampleSensor(domService, RoomTemperature(45), "Room4 Temperature")])
-    add_entities([ExampleSensor(domService, RoomTemperature(50), "Room5 Temperature")])
-    add_entities([ExampleSensor(domService, RoomTemperature(75), "Room6 Temperature")])
-    add_entities([MeteoSensorTemp(domService, [Meteo(80), Meteo(90)], "External Temperature")])
-    add_entities([MeteoSensorLux(domService, [Meteo(80), Meteo(90)], "External Illuminance")])
-    add_entities([MeteoSensorWind(domService, [Meteo(80), Meteo(90)], "External Wind Speed")])
+    add_entities([TempSensor(domService, RoomTemperature(30), "Room1 Temperature")])
+    add_entities([TempSensor(domService, RoomTemperature(35), "Room2 Temperature")])
+    add_entities([TempSensor(domService, RoomTemperature(40), "CameraLeti Temperature")])
+    add_entities([TempSensor(domService, RoomTemperature(45), "Room4 Temperature")])
+    add_entities([TempSensor(domService, RoomTemperature(50), "Room5 Temperature")])
+    add_entities([TempSensor(domService, RoomTemperature(75), "Room6 Temperature")])
+    meteoSensors = [Meteo(80), Meteo(90)]
+    add_entities([MeteoSensorTemp(domService, meteoSensors, "External Temperature")])
+    add_entities([MeteoSensorLux(domService, meteoSensors, "External Illuminance")])
+    add_entities([MeteoSensorWind(domService, meteoSensors, "External Wind Speed")])
 
 class MeteoSensorWind(SensorEntity):
     """Representation of a Sensor."""
@@ -73,19 +74,15 @@ class MeteoSensorWind(SensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        ser = self._domService.open()
-        try:
-            maxWind = 0
-            for meteo in self._meteos:
-              status = meteo.status(ser)
-              _LOGGER.info(f"Meteo status: {status}")
-              wind = status.getWind()
-              if (wind > maxWind):
-                maxWind = wind
-            _LOGGER.info(f"External wind speed: {maxWind}")
-            self._attr_native_value = maxWind
-        finally:
-            self._domService.close()
+        maxWind = 0
+        for meteo in self._meteos:
+          status = meteo.status(self._domService)
+          _LOGGER.info(f"Meteo status: {status}")
+          wind = status.getWind()
+          if (wind > maxWind):
+            maxWind = wind
+        _LOGGER.info(f"External wind speed: {maxWind}")
+        self._attr_native_value = maxWind
 
 class MeteoSensorLux(SensorEntity):
     """Representation of a Sensor."""
@@ -106,19 +103,15 @@ class MeteoSensorLux(SensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        ser = self._domService.open()
-        try:
-            maxLux = 0
-            for meteo in self._meteos:
-              status = meteo.status(ser)
-              _LOGGER.info(f"Meteo status: {status}")
-              lux = status.getLux()
-              if (lux > maxLux):
-                maxLux = lux
-            _LOGGER.info(f"External illuminance: {maxLux}")
-            self._attr_native_value = maxLux
-        finally:
-            self._domService.close()
+        maxLux = 0
+        for meteo in self._meteos:
+          status = meteo.status(self._domService)
+          _LOGGER.info(f"Meteo status: {status}")
+          lux = status.getLux()
+          if (lux > maxLux):
+            maxLux = lux
+        _LOGGER.info(f"External illuminance: {maxLux}")
+        self._attr_native_value = maxLux
 
 class MeteoSensorTemp(SensorEntity):
     """Representation of a Sensor."""
@@ -139,20 +132,16 @@ class MeteoSensorTemp(SensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        ser = self._domService.open()
-        try:
-            temp = 0
-            for meteo in self._meteos:
-              status = meteo.status(ser)
-              _LOGGER.info(f"Meteo status: {status}")
-              temp += status.getCelsius()
-            avgTemp = round(temp / len(self._meteos), 2)
-            _LOGGER.info(f"External temperature: {avgTemp}")
-            self._attr_native_value = avgTemp
-        finally:
-            self._domService.close()
+        temp = 0
+        for meteo in self._meteos:
+          status = meteo.status(self._domService)
+          _LOGGER.info(f"Meteo status: {status}")
+          temp += status.getCelsius()
+        avgTemp = round(temp / len(self._meteos), 2)
+        _LOGGER.info(f"External temperature: {avgTemp}")
+        self._attr_native_value = avgTemp
 
-class ExampleSensor(SensorEntity):
+class TempSensor(SensorEntity):
     """Representation of a Sensor."""
 
     _attr_name = "Example Temperature"
@@ -171,10 +160,6 @@ class ExampleSensor(SensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        ser = self._domService.open()
-        try:
-            status = self._room.status(ser)
-            _LOGGER.debug(f"Room temperature: {status}")
-            self._attr_native_value = status.getCelsius()
-        finally:
-            self._domService.close()
+        status = self._room.status(self._domService)
+        _LOGGER.debug(f"Room temperature: {status}")
+        self._attr_native_value = status.getCelsius()
