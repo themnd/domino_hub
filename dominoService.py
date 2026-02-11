@@ -1,0 +1,193 @@
+import logging
+import serial
+import time
+
+
+_LOGGER = logging.getLogger(__name__)
+
+def readMessage(ser):
+    maxWait = 10
+    bytesToRead = ser.inWaiting()
+    #print ('bytesToRead: ' + str(bytesToRead))
+    while (bytesToRead == 0):
+      time.sleep(1)
+      bytesToRead = ser.inWaiting()
+      #print ('bytesToRead: ' + str(bytesToRead))
+      maxWait -= 1
+      if (maxWait == 0):
+        raise Exception("timeout")
+    if (bytesToRead > 0):
+      return ser.read(bytesToRead)
+    else:
+      return None
+    
+
+def calcMessage(values):
+  c = 0
+  b = bytearray()
+  #print(b)
+  for v in values:
+    c += v
+    b.append(v)
+  c = c & 0xFF
+  c = 0xFF - c
+  b.append(c)
+  return bytes(b)
+
+def dumpMessage(msg):
+  s = ''
+  for c in msg:
+    #s += hex(ord(c)) + ' '
+    if (isinstance(c, int)):
+      s += hex(c) + ' '
+    else:
+      s += hex(ord(c)) + ' '
+  #print (s)
+
+def sendReqStatus(modNumber, func, d1 = 0x33, d2 = 0x33):
+  values = [
+    0x55,
+    0x82,
+    func,
+    modNumber,
+    d1,
+    d2
+  ]
+  s = calcMessage(values)
+  return s
+
+def sendMessage(ser, msg):
+    #print( "writing " + str(len(msg)))
+    dumpMessage(msg)
+    return ser.write(msg)
+
+def exchangeMsg(ser, msg):
+    sendMessage(ser, msg)
+
+    ans = readMessage(ser)
+    #if (ord(ans[2]) == 0x0 and ord(ans[5]) == 0xf0):
+    if (ans[2] == 0x0 and ans[5] == 0xf0):
+      return None
+    if (ans[2] == 0x0 and ans[5] == 0xff):
+      return None
+    dumpMessage(ans)
+    return ans
+
+def getMsgData(ans):
+  return ans[4], ans[5]
+
+def evaluteMsgAsLong(ans):
+  (d1, d2) = getMsgData(ans)
+  return (d1 << 8) + d2
+
+class RoomTemperature:
+  def __init__(self, mod):
+    self.mod = mod
+  
+  def status(self, ser):
+    #d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x30))
+    d2 = exchangeMsg(ser, sendReqStatus(self.mod + 1, 0x30))
+    kelvin = evaluteMsgAsLong(d2)
+    #print (kelvin)
+    return RoomTemperature.Status(kelvin)
+
+  class Status:
+    def __init__(self, kelvin):
+      self.kelvinValue = kelvin
+    
+    def getKelvin(self):
+      return round(self.kelvinValue / 10, 2)
+    
+    def getCelsius(self):
+      return round(self.getKelvin() - 273.15, 2)
+    
+    def __str__(self):
+      return "RoomTemperature.Status: " + str(self.getCelsius()) + "°C / " + str(self.getKelvin()) + "K"
+
+class Meteo:
+  def __init__(self, mod, num = None):
+    self.mod = mod
+    self.num = num
+  
+  def status(self, ser):
+    # contains temperature in kelvin (x 10)
+    d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x30))
+    kelvin = evaluteMsgAsLong(d1)
+    # contains lux in decine di lux (so you have to divide by 10)
+    d2 = exchangeMsg(ser, sendReqStatus(self.mod + 1, 0x30))
+    lux = evaluteMsgAsLong(d2)
+    # contains wind in decimi di m/s (so you have to multiple by 10 for m/s)
+    d3 = exchangeMsg(ser, sendReqStatus(self.mod + 2, 0x30))
+    wind = evaluteMsgAsLong(d3)
+    d4 = exchangeMsg(ser, sendReqStatus(self.mod + 3, 0x30))
+    b1, b2 = getMsgData(d4)
+    isRain = (b1 & 0x80) != 0
+    isTwilight = (b1 & 0x40) != 0
+    tempOver = (b1 & 0x20) != 0
+    luxOver = (b1 & 0x10) != 0
+    windOver = (b1 & 0x08) != 0
+    lightS = (b1 & 0x04) != 0
+    lightW = (b1 & 0x02) != 0
+    lightE = (b1 & 0x01) != 0
+    badSensor = (b2 & 0x02) != 0
+    return Meteo.MeteoStatus(kelvin, lux, wind, isRain, isTwilight)
+
+  class MeteoStatus:
+    def __init__(self, kelvin, lux, wind, isRaining, isTwilight):
+      self.kelvinValue = kelvin
+      self.luxValue = lux
+      self.windValue = wind
+      self.isRaining = isRaining
+      self.isTwilight = isTwilight
+    
+    def getKelvin(self):
+      return round(self.kelvinValue / 10, 2)
+    
+    def getCelsius(self):
+      return round(self.getKelvin() - 273.15, 2)
+
+    def getLux(self):
+      return round(self.luxValue * 10, 2)
+
+    def getWind(self):
+      return round(self.windValue / 10, 2)
+    
+    def getIsRaining(self):
+      return self.isRaining
+    
+    def getIsTwilight(self):
+      return self.isTwilight
+
+    def __str__(self):
+      return "MeteoStatus: " + str(self.getCelsius()) + "°C / " + str(self.getKelvin()) + "K" + " / " + str(self.getLux()) + " lux" + " / " + str(self.getWind()) + " m/s" + " / " + ("raining" if self.isRaining else "not raining") + " / " + ("twilight" if self.isTwilight else "day")  
+
+class DominoService:
+  def __init__(self, com_port, com_baud):
+    self.com_port = com_port
+    self.com_baud = com_baud
+    self.ser = None
+    self.openCount = 0
+    _LOGGER.info(f"DominoService initialized with com_port: {com_port}, com_baud: {com_baud}")
+  
+  def open(self):
+    if (self.ser is None):
+      self.ser = serial.Serial(self.com_port, baudrate = self.com_baud,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS,
+            rtscts=False,
+            dsrdtr=False,
+            xonxoff=False,
+            timeout=5)
+    self.openCount += 1
+    _LOGGER.debug(f"DominoService open called. openCount: {self.openCount}")
+    return self.ser
+
+  def close(self):
+    if (self.ser is not None):
+      self.openCount -= 1
+      _LOGGER.debug(f"DominoService close called. openCount: {self.openCount}")
+      if (self.openCount == 0):
+        self.ser.close()
+        self.ser = None
+        _LOGGER.debug("DominoService serial connection closed.")

@@ -1,0 +1,9 @@
+{
+  "domain": "domino_hub",
+  "name": "Domino Hub",
+  "config_flow": false,
+  "dependencies": [],
+  "iot_class": "local_polling",
+  "requirements": ["pyserial"],
+  "version": "0.0.1"
+}
