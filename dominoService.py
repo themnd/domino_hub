@@ -238,7 +238,6 @@ class Dimmer:
   def readStatus(self, ser):
     d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x31))
     b1, b2 = getMsgData(d1)
-    _LOGGER.info(f"Dimmer status: {hex(b1)} - {hex(b2)}")
     return b2 if b1 == 0 else 0
 
   def setLight(self, svc: DominoService, pct):
