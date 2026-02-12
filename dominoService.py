@@ -117,13 +117,20 @@ class DominoService:
 class RoomTemperature:
   def __init__(self, mod):
     self.mod = mod
+    self.lastStatus = None
+    self.lastStatusTime = 0
+    self.cacheTime = 60
   
   def status(self, svc: DominoService):
-    ser = svc.open()
-    try:
-      return self.readStatus(ser)
-    finally:
-      svc.close()
+    statusTime = int(round(time.time()))
+    if ((self.lastStatus is None) or ((statusTime - self.lastStatusTime) > self.cacheTime)):
+      ser = svc.open()
+      try:
+        self.lastStatus = self.readStatus(ser)
+        self.lastStatusTime = statusTime
+      finally:
+        svc.close()
+    return self.lastStatus
   
   def readStatus(self, ser):
     #d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x30))
@@ -151,10 +158,11 @@ class Meteo:
     self.num = num
     self.lastStatus = None
     self.lastStatusTime = 0
+    self.cacheTime = 60
   
   def status(self, svc: DominoService):
     statusTime = int(round(time.time()))
-    if ((self.lastStatus is None) or ((statusTime - self.lastStatusTime) > 60)):
+    if ((self.lastStatus is None) or ((statusTime - self.lastStatusTime) > self.cacheTime)):
       ser = svc.open()
       try:
         self.lastStatus = self.readStatus(ser)
