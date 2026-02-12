@@ -99,20 +99,31 @@ class MeteoSensorWind(SensorEntity):
         self._meteos = meteos
         self._attr_name = name
 
+        # Unique ID based on sensor address
+        ids = "_".join(str(m.mod) for m in meteos)
+        self._attr_unique_id = f"domino_sensor_wind_{ids}"
+
     def update(self) -> None:
         """Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
         maxWind = 0
+        minWind = 0
         for meteo in self._meteos:
           status = meteo.status(self._domService)
           _LOGGER.info(f"Meteo status: {status}")
           wind = status.getWind()
           if (wind > maxWind):
             maxWind = wind
-        _LOGGER.info(f"External wind speed: {maxWind}")
-        self._attr_native_value = maxWind
+          if (wind < minWind):
+            minWind = wind
+        if (int(minWind) == 0 and int(maxWind) == 35):
+          wind = 0
+        else:
+          wind = maxWind
+        _LOGGER.info(f"External wind speed: {wind} - max: {maxWind} - min: {minWind}")
+        self._attr_native_value = wind
 
 class MeteoSensorLux(SensorEntity):
     """Representation of a Sensor."""
@@ -127,6 +138,11 @@ class MeteoSensorLux(SensorEntity):
         self._domService = domService
         self._meteos = meteos
         self._attr_name = name
+
+        # Unique ID based on sensor address
+        ids = "_".join(str(m.mod) for m in meteos)
+        self._attr_unique_id = f"domino_sensor_lux_{ids}"
+
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
@@ -157,6 +173,10 @@ class MeteoSensorTemp(SensorEntity):
         self._meteos = meteos
         self._attr_name = name
 
+        # Unique ID based on sensor address
+        ids = "_".join(str(m.mod) for m in meteos)
+        self._attr_unique_id = f"domino_sensor_temp_{ids}"
+
     def update(self) -> None:
         """Fetch new state data for the sensor.
 
@@ -186,6 +206,11 @@ class MeteoSensorRain(SensorEntity):
         self._meteos = meteos
         self._attr_name = name
 
+        # Unique ID based on sensor address
+        ids = "_".join(str(m.mod) for m in meteos)
+        self._attr_unique_id = f"domino_sensor_rain_{ids}"
+
+
     def update(self) -> None:
         """Fetch new state data for the sensor.
 
@@ -214,6 +239,10 @@ class TempSensor(SensorEntity):
         self._domService = domService
         self._room = room
         self._attr_name = name
+
+        # Unique ID based on sensor address
+        self._attr_unique_id = f"domino_sensor_temp_{room.mod}"
+
 
     def update(self) -> None:
         """Fetch new state data for the sensor.
