@@ -41,13 +41,6 @@ async def async_setup_entry(
     for temp in roomTemps:
       sensors.append(TempSensor(domService, RoomTemperature(temp[0]), temp[1]))
 
-    #add_entities([TempSensor(domService, RoomTemperature(30), "Cucina Temperature")])
-    #add_entities([TempSensor(domService, RoomTemperature(35), "Room2 Temperature")])
-    #add_entities([TempSensor(domService, RoomTemperature(40), "Camera Leti Temperature")])
-    #add_entities([TempSensor(domService, RoomTemperature(45), "Camera Matrimoniale Temperature")])
-    #add_entities([TempSensor(domService, RoomTemperature(50), "Room5 Temperature")])
-    #add_entities([TempSensor(domService, RoomTemperature(75), "Room6 Temperature")])
-
     # Meteo sensors
     meteos = [Meteo(80), Meteo(90)]
     sensors.append(MeteoSensorTemp(domService, meteos, "External Temperature"))
@@ -56,34 +49,6 @@ async def async_setup_entry(
     sensors.append(MeteoSensorRain(domService, meteos, "External Rain"))
 
     async_add_entities(sensors)
-
-# def setup_platform(
-#     hass: HomeAssistant,
-#     config: ConfigType,
-#     add_entities: AddEntitiesCallback,
-#     discovery_info: DiscoveryInfoType | None = None
-# ) -> None:
-#     comPort = '/dev/ttyUSB0'
-#     if (CONF_COM_PORT in config):
-#       comPort = config[CONF_COM_PORT]
-
-#     comBaud = config[CONF_COM_BAUD]
-    
-#     _LOGGER.info(f"comPort: {comPort}, comBaud: {comBaud}")
-
-#     domService = DominoService(comPort, comBaud)
-#     """Set up the sensor platform."""
-#     add_entities([TempSensor(domService, RoomTemperature(30), "Cucina Temperature")])
-#     add_entities([TempSensor(domService, RoomTemperature(35), "Room2 Temperature")])
-#     add_entities([TempSensor(domService, RoomTemperature(40), "Camera Leti Temperature")])
-#     add_entities([TempSensor(domService, RoomTemperature(45), "Camera Matrimoniale Temperature")])
-#     add_entities([TempSensor(domService, RoomTemperature(50), "Room5 Temperature")])
-#     add_entities([TempSensor(domService, RoomTemperature(75), "Room6 Temperature")])
-#     meteoSensors = [Meteo(80), Meteo(90)]
-#     add_entities([MeteoSensorTemp(domService, meteoSensors, "External Temperature")])
-#     add_entities([MeteoSensorLux(domService, meteoSensors, "External Illuminance")])
-#     add_entities([MeteoSensorWind(domService, meteoSensors, "External Wind Speed")])
-#     add_entities([MeteoSensorRain(domService, meteoSensors, "External Rain")])
 
 class MeteoSensorWind(SensorEntity):
     """Representation of a Sensor."""
@@ -112,7 +77,7 @@ class MeteoSensorWind(SensorEntity):
         minWind = 0
         for meteo in self._meteos:
           status = meteo.status(self._domService)
-          _LOGGER.info(f"Meteo status: {status}")
+          _LOGGER.debug(f"Meteo status: {status}")
           wind = status.getWind()
           if (wind > maxWind):
             maxWind = wind
@@ -152,11 +117,11 @@ class MeteoSensorLux(SensorEntity):
         maxLux = 0
         for meteo in self._meteos:
           status = meteo.status(self._domService)
-          _LOGGER.info(f"Meteo status: {status}")
+          _LOGGER.debug(f"Meteo status: {status}")
           lux = status.getLux()
           if (lux > maxLux):
             maxLux = lux
-        _LOGGER.info(f"External illuminance: {maxLux}")
+        _LOGGER.debug(f"External illuminance: {maxLux}")
         self._attr_native_value = maxLux
 
 class MeteoSensorTemp(SensorEntity):
@@ -185,10 +150,10 @@ class MeteoSensorTemp(SensorEntity):
         temp = 0
         for meteo in self._meteos:
           status = meteo.status(self._domService)
-          _LOGGER.info(f"Meteo status: {status}")
+          _LOGGER.debug(f"Meteo status: {status}")
           temp += status.getCelsius()
         avgTemp = round(temp / len(self._meteos), 2)
-        _LOGGER.info(f"External temperature: {avgTemp}")
+        _LOGGER.debug(f"External temperature: {avgTemp}")
         self._attr_native_value = avgTemp
 
 class MeteoSensorRain(SensorEntity):
@@ -219,11 +184,11 @@ class MeteoSensorRain(SensorEntity):
         isRaining = False
         for meteo in self._meteos:
           status = meteo.status(self._domService)
-          _LOGGER.info(f"Meteo status: {status}")
+          _LOGGER.debug(f"Meteo status: {status}")
           if (status.getIsRaining()):
             isRaining = True
             break
-        _LOGGER.info(f"External raining: {isRaining}")
+        _LOGGER.debug(f"External raining: {isRaining}")
         self._attr_native_value = "Rain" if isRaining else "No Rain"
     
 class TempSensor(SensorEntity):
