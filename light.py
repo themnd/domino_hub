@@ -47,6 +47,7 @@ class DimmerEntity(LightEntity):
         self._attr_name = name
         self._attr_is_on = False
         self._attr_brightness = 0
+        self._attr_prev_brightness = 0
 
         # Unique ID based on dimmer address
         self._attr_unique_id = f"domino_dimmer_{light.mod}"
@@ -66,10 +67,16 @@ class DimmerEntity(LightEntity):
     @property
     def is_on(self):
         return self._attr_is_on
+    
+    @property
+    def prevBrightness(self):
+        return self._attr_prev_brightness
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light with optional brightness."""
-        bri = kwargs.get(ATTR_BRIGHTNESS, 255)
+
+        prevBri = self._attr_prev_brightness if self._attr_prev_brightness > 0 else 255
+        bri = kwargs.get(ATTR_BRIGHTNESS, prevBri)
         pct = int(bri * 100 / 255)
 
         # Send command to device
@@ -80,17 +87,21 @@ class DimmerEntity(LightEntity):
 
         self._attr_is_on = True
         self._attr_brightness = bri
+        self._attr_prev_brightness = bri
 
         _LOGGER.info(f"Turn ON {self._attr_name} brightness={pct}%")
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the light."""
+
         try:
             await self._setLight(0)
         except Exception as e:
             _LOGGER.error(f"Error turning off {self._attr_name}: {e}")
 
+        if (self._attr_brightness > 0):
+            self._attr_prev_brightness = self._attr_brightness
         self._attr_is_on = False
         self._attr_brightness = 0
 
@@ -109,6 +120,8 @@ class DimmerEntity(LightEntity):
 
             self._attr_brightness = bri
             self._attr_is_on = pct > 0
+            if (self._attr_prev_brightness == 0 and self._attr_brightness > 0):
+                self._attr_prev_brightness = self._attr_brightness
 
         except Exception as e:
             _LOGGER.error(f"Error updating {self._attr_name}: {e}")
