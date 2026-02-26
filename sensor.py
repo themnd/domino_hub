@@ -32,11 +32,11 @@ async def async_setup_entry(
     # Room temperature sensors
     roomTemps = [
       [30, "Cucina Temperature"],
-      [35, "Room2 Temperature"],
+      [35, "Camera Francesco Temperature"],
       [40, "Camera Leti Temperature"],
       [45, "Camera Matrimoniale Temperature"],
-      [50, "Room5 Temperature"],
-      [75, "Room6 Temperature"]
+      #[50, "Room5 Temperature"],
+      [75, "Sala Temperature"]
     ]
     for temp in roomTemps:
       sensors.append(TempSensor(domService, RoomTemperature(temp[0]), temp[1]))
@@ -75,13 +75,19 @@ class MeteoSensorWind(SensorEntity):
         """
         maxWind = 0
         minWind = 0
+        winds = []
         for meteo in self._meteos:
           status = meteo.status(self._domService)
           _LOGGER.debug(f"Meteo status: {status}")
           wind = status.getWind()
+          #if (int(wind) == 35):
+          # skip this value since it's likely an error in the sensor, but only if we already have some valid wind measurements
+          #  wind = winds[0]
+          winds.append(wind)
+        for wind in winds:
           if (wind > maxWind):
             maxWind = wind
-          if (wind < minWind):
+          if ((minWind == 0 or wind < minWind)) and int(wind) != 35:
             minWind = wind
         if (int(minWind) == 0 and int(maxWind) == 35):
           wind = 0
@@ -216,4 +222,8 @@ class TempSensor(SensorEntity):
         """
         status = self._room.status(self._domService)
         _LOGGER.debug(f"Room temperature: {status}")
-        self._attr_native_value = status.getCelsius()
+        temp = status.getCelsius()
+        if (temp < -20 or temp > 50):
+            _LOGGER.warning(f"Temperature value {temp}°C for {self._attr_name} is out of expected range. Setting to 0.")
+        else:
+            self._attr_native_value = temp

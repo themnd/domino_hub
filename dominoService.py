@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import serial
 import time
@@ -192,6 +194,9 @@ class Meteo:
     lightW = (b1 & 0x02) != 0
     lightE = (b1 & 0x01) != 0
     badSensor = (b2 & 0x02) != 0
+    if (b2 == 0x10):
+      # skip this value since it's likely an error in the sensor, but only if we already have some valid wind measurements
+      wind = 0
     return Meteo.MeteoStatus(kelvin, lux, wind, isRain, isTwilight)
 
   class MeteoStatus:
@@ -250,3 +255,118 @@ class Dimmer:
   def _setLight(self, ser, pct):
     pct = min(max(0, pct), 100)
     return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = 0, d2 = pct))
+
+class LightContainer:
+  def __init__(self, mod):
+    self.mod = mod
+    self.lastStatus = None
+    self.lastStatusTime = 0
+    self.cacheTime = 60
+
+  def status(self, svc: DominoService):
+    statusTime = int(round(time.time()))
+    if ((self.lastStatus is None) or ((statusTime - self.lastStatusTime) > self.cacheTime)):
+      ser = svc.open()
+      try:
+        self.lastStatus = self.readStatus(ser)
+        self.lastStatusTime = statusTime
+      finally:
+        svc.close()
+    return self.lastStatus
+
+  def readStatus(self, ser):
+    d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x31))
+    b1, b2 = getMsgData(d1)
+    return b2
+
+  def setLight(self, svc: DominoService, num, pct):
+    ser = svc.open()
+    try:
+      if (pct == 0):
+        return self.off(ser, num)
+      else:
+        return self.on(ser, num)
+    finally:
+      svc.close()
+      self.lastStatus = None
+
+  def on(self, ser, num):
+    #print ("num: " + str(num))
+    bit = 1 << (num - 1)
+    #print (hex(bit))
+    b2 = (bit << 4) | bit
+    #print (hex(b2))
+    exchangeMsg(ser, sendReqStatus(self.mod, 0x10, 0, b2))
+
+  def off(self, ser, num):
+    #print ("num: " + str(num))
+    bit = 1 << (num - 1)
+    #print (hex(bit))
+    b2 = (bit << 4)
+    #print (hex(b2))
+    exchangeMsg(ser, sendReqStatus(self.mod, 0x10, 0, b2))
+
+class Light:
+  def __init__(self, container:LightContainer, num):
+    self.container = container
+    self.num = num
+
+  @property
+  def mod(self):
+      return self.container.mod
+    
+  def status(self, svc: DominoService):
+    status = self.container.status(svc)
+    bit = 1 << (self.num - 1)
+    #print (hex(bit))
+    isOn = (status & bit) != 0
+    return isOn
+
+  def setLight(self, svc: DominoService, pct):
+    self.container.setLight(svc, self.num, pct)
+
+class Light2:
+  def __init__(self, mod, num):
+    self.mod = mod
+    self.num = num
+
+  def status(self, svc: DominoService):
+    ser = svc.open()
+    try:
+      return self.readStatus(ser)
+    finally:
+      svc.close()
+
+  def readStatus(self, ser):
+    d1 = exchangeMsg(ser, sendReqStatus(self.mod, 0x31))
+    b1, b2 = getMsgData(d1)
+    bit = 1 << (self.num - 1)
+    #print (hex(bit))
+    isOn = (b2 & bit) != 0
+    return isOn
+
+  def setLight(self, svc: DominoService, pct):
+    ser = svc.open()
+    try:
+      if (pct == 0):
+        return self.off(ser)
+      else:
+        return self.on(ser)
+    finally:
+      svc.close()
+
+  def on(self, ser):
+    #print ("num: " + str(self.num))
+    bit = 1 << (self.num - 1)
+    #print (hex(bit))
+    b2 = (bit << 4) | bit
+    #print (hex(b2))
+    exchangeMsg(ser, sendReqStatus(self.mod, 0x10, 0, b2))
+
+  def off(self, ser):
+    #print ("num: " + str(self.num))
+    bit = 1 << (self.num - 1)
+    #print (hex(bit))
+    b2 = (bit << 4)
+    #print (hex(b2))
+    exchangeMsg(ser, sendReqStatus(self.mod, 0x10, 0, b2))
