@@ -10,21 +10,27 @@ _LOGGER = logging.getLogger(__name__)
 _exchange_lock = threading.Lock() 
 
 def readMessage(ser):
-    maxWait = 20
+  #maxWait = 20
+  #timeToSleep = 0.5
+  #maxWait = 40
+  #timeToSleep = 0.25
+  maxWait = 100
+  wait = maxWait
+  timeToSleep = 0.1
+  bytesToRead = ser.inWaiting()
+  #print ('bytesToRead: ' + str(bytesToRead))
+  while (bytesToRead == 0):
+    time.sleep(timeToSleep)
     bytesToRead = ser.inWaiting()
     #print ('bytesToRead: ' + str(bytesToRead))
-    while (bytesToRead == 0):
-      time.sleep(0.5)
-      bytesToRead = ser.inWaiting()
-      #print ('bytesToRead: ' + str(bytesToRead))
-      maxWait -= 1
-      if (maxWait == 0):
-        raise Exception("timeout")
-    if (bytesToRead > 0):
-      return ser.read(bytesToRead)
-    else:
-      return None
-    
+    wait -= 1
+    if (wait == 0):
+      raise Exception("timeout")
+  if (bytesToRead > 0):
+    #_LOGGER.info("Reading " + str(bytesToRead) + " bytes from serial after waiting " + str((maxWait - wait) * timeToSleep) + " seconds")
+    return ser.read(bytesToRead)
+  else:
+    return None
 
 def calcMessage(values):
   c = 0
