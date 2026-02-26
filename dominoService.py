@@ -189,18 +189,21 @@ class Meteo:
     # contains wind in decimi di m/s (so you have to multiple by 10 for m/s)
     d3 = exchangeMsg(ser, sendReqStatus(self.mod + 2, 0x30))
     wind = evaluteMsgAsLong(d3)
+    #b1, b2 = getMsgData(d3)
+    #_LOGGER.info(f"Meteo1 b1: {hex(b1)}, b2: {hex(b2)}, wind: {wind}")
     d4 = exchangeMsg(ser, sendReqStatus(self.mod + 3, 0x30))
     b1, b2 = getMsgData(d4)
-    isRain = (b1 & 0x80) != 0
-    isTwilight = (b1 & 0x40) != 0
-    tempOver = (b1 & 0x20) != 0
-    luxOver = (b1 & 0x10) != 0
-    windOver = (b1 & 0x08) != 0
-    lightS = (b1 & 0x04) != 0
-    lightW = (b1 & 0x02) != 0
-    lightE = (b1 & 0x01) != 0
-    badSensor = (b2 & 0x02) != 0
-    if (b2 == 0x10):
+    isRain = (b2 & 0x01) != 0
+    isTwilight = (b2 & 0x02) != 0
+    tempOver = (b2 & 0x04) != 0
+    luxOver = (b2 & 0x08) != 0
+    windOver = (b2 & 0x10) != 0
+    lightS = (b2 & 0x20) != 0
+    lightW = (b2 & 0x40) != 0
+    lightE = (b2 & 0x80) != 0
+    badSensor = (b1 & 0x40) != 0
+    _LOGGER.debug(f"Meteo2 b1: {hex(b1)}, b2: {hex(b2)}, isRain: {isRain}, isTwilight: {isTwilight}, tempOver: {tempOver}, luxOver: {luxOver}, windOver: {windOver}, lightS: {lightS}, lightW: {lightW}, lightE: {lightE}, badSensor: {badSensor}")
+    if (windOver or badSensor):
       # skip this value since it's likely an error in the sensor, but only if we already have some valid wind measurements
       wind = 0
     return Meteo.MeteoStatus(kelvin, lux, wind, isRain, isTwilight)
