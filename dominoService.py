@@ -206,6 +206,8 @@ class Meteo:
     if (windOver or badSensor):
       # skip this value since it's likely an error in the sensor, but only if we already have some valid wind measurements
       wind = 0
+    if (badSensor):
+      _LOGGER.warning(f"Meteo2 b1: {hex(b1)}, b2: {hex(b2)}, isRain: {isRain}, isTwilight: {isTwilight}, tempOver: {tempOver}, luxOver: {luxOver}, windOver: {windOver}, lightS: {lightS}, lightW: {lightW}, lightE: {lightE}, badSensor: {badSensor}")
     return Meteo.MeteoStatus(kelvin, lux, wind, isRain, isTwilight)
 
   class MeteoStatus:
@@ -379,3 +381,163 @@ class Light2:
     b2 = (bit << 4)
     #print (hex(b2))
     exchangeMsg(ser, sendReqStatus(self.mod, 0x10, 0, b2))
+
+
+class MotorContainer:
+  def __init__(self, mod):
+    self.mod = mod
+    self.lastStatus = None
+    self.lastStatusTime = 0
+    self.cacheTime = 10
+
+  def status(self, svc: DominoService):
+    statusTime = int(round(time.time()))
+    if ((self.lastStatus is None) or ((statusTime - self.lastStatusTime) > self.cacheTime)):
+      ser = svc.open()
+      try:
+        self.lastStatus = self.readStatus(ser)
+        self.lastStatusTime = statusTime
+      finally:
+        svc.close()
+    return self.lastStatus
+
+  def readStatus(self, ser) -> MotorContainer.MotorStatus:
+    d = exchangeMsg(ser, sendReqStatus(self.mod, 0x31))
+    b1, b2 = getMsgData(d)
+    _LOGGER.debug(f"Motor {self.mod} -> b1: {hex(b1)}, b2: {hex(b2)}")
+    
+    m1o = (b2 & 0x01) != 0
+    m1c = (b2 & 0x02) != 0
+    m2o = (b2 & 0x04) != 0
+    m2c = (b2 & 0x08) != 0
+
+    m1stopped = not m1o and not m1c
+    m2stopped = not m2o and not m2c
+
+    if (m1stopped):
+      m1s = MotorContainer.MotorStatus.MotorMovement.STOPPED
+    elif (m1o):
+      m1s = MotorContainer.MotorStatus.MotorMovement.OPENING
+    elif (m1c):
+      m1s = MotorContainer.MotorStatus.MotorMovement.CLOSING
+    else:
+      m1s = None
+    
+    if (m2stopped):
+      m2s = MotorContainer.MotorStatus.MotorMovement.STOPPED
+    elif (m2o):
+      m2s = MotorContainer.MotorStatus.MotorMovement.OPENING
+    elif (m2c):
+      m2s = MotorContainer.MotorStatus.MotorMovement.CLOSING
+    else:
+      m2s = None
+
+    return MotorContainer.MotorStatus(m1s, m2s)
+    
+    # d1 = exchangeMsg(ser, sendReqStatus(self.mod + 1, 0x30))
+    # b1, b2 = getMsgData(d1)
+    # if (self.mod == 17 and num == 2):
+    #   _LOGGER.info(f"Motor3 {self.mod + 1} - {num} -> b1: {hex(b1)}, b2: {hex(b2)}")
+    # d1 = exchangeMsg(ser, sendReqStatus(self.mod + 1, 0x31))
+    # b1, b2 = getMsgData(d1)
+    # if (self.mod == 17 and num == 2):
+    #   _LOGGER.info(f"Motor4 {self.mod + 1} - {num} -> b1: {hex(b1)}, b2: {hex(b2)}")
+    return b2
+
+  def setPosition(self, svc: DominoService, num, pct):
+    ser = svc.open()
+    try:
+      return self._setPosition(ser, num, pct)
+    finally:
+      svc.close()
+
+  def _setPosition(self, ser, num, pct):
+    d1 = 0x01 if num == 1 else 0x02
+    pct = min(max(0, pct), 100)
+    d2 = int(pct * 55 / 100)
+    _LOGGER.info(f"setPosition on {self.mod}, num: {num}, pct: {pct}, d2: {d2}, d2hex: {hex(d2)}")
+    return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = d1, d2 = d2))
+
+  def doOpen(self, svc: DominoService, num):
+    ser = svc.open()
+    try:
+      return self._doOpen(ser, num)
+    finally:
+      svc.close()
+
+  def _doOpen(self, ser, num):
+    d1 = 0x01 if num == 1 else 0x04
+    d2 = 0x01 if num == 1 else 0x04
+    _LOGGER.info(f"doOpen on {self.mod}, num: {num}, d1: {hex(d1)}, d2: {hex(d2)}")
+    return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = d1, d2 = d2))
+
+  def doClose(self, svc: DominoService, num):
+    ser = svc.open()
+    try:
+      return self._doClose(ser, num)
+    finally:
+      svc.close()
+
+  def _doClose(self, ser, num):
+    d1 = 0x01 if num == 1 else 0x08
+    d2 = 0x02 if num == 2 else 0x08
+    _LOGGER.info(f"doClose on {self.mod}, num: {num}, d1: {hex(d1)}, d2: {hex(d2)}")
+    return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = d1, d2 = d2))
+
+  def doStop(self, svc: DominoService, num):
+    ser = svc.open()
+    try:
+      return self._doStop(ser, num)
+    finally:
+      svc.close()
+  
+  def _doStop(self, ser, num):
+    d1 = 0x03 if num == 1 else 0x0C
+    d2 = 0
+    _LOGGER.info(f"doStop on {self.mod}, num: {num}, d1: {hex(d1)}, d2: {hex(d2)}")
+    return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = d1, d2 = d2))
+
+  class MotorStatus:
+
+    class MotorMovement:
+      OPENING = 1
+      CLOSING = 2
+      STOPPED = 3
+    
+    def __init__(self, motor1: MotorMovement, motor2: MotorMovement):
+      self.motor1 = motor1
+      self.motor2 = motor2
+
+    def getMotor1(self) -> MotorMovement:
+      return self.motor1
+
+    def getMotor2(self) -> MotorMovement:
+      return self.motor2
+
+    def __str__(self):
+      return "MotorStatus: motor 1 " + str(self.getMotor1()) + " motor 2 " + str(self.getMotor2())
+
+class Motor:
+  def __init__(self, motor:MotorContainer, num):
+    self.motor = motor
+    self.num = num
+  
+  @property
+  def mod(self):
+      return self.motor.mod
+  
+  def status(self, svc: DominoService):
+    status = self.motor.status(svc)
+    return status.getMotor1() if self.num == 1 else status.getMotor2()
+  
+  def setPosition(self, svc: DominoService, pct):
+    self.motor.setPosition(svc, self.num, pct)
+  
+  def doOpen(self, svc: DominoService):
+    self.motor.doOpen(svc, self.num)
+  
+  def doClose(self, svc: DominoService):
+    self.motor.doClose(svc, self.num)
+  
+  def doStop(self, svc: DominoService):
+    self.motor.doStop(svc, self.num)

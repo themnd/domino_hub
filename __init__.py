@@ -11,7 +11,7 @@ from .const import CONF_COM_PORT, CONF_COM_BAUD
 
 # TODO List the platforms that you want to support.
 # For your initial PR, limit it to 1 platform.
-_PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.LIGHT]
+_PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.LIGHT, Platform.COVER]
 
 # TODO Create ConfigEntry type alias with API object
 # TODO Rename type alias and update all entry annotations

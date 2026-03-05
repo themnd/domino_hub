@@ -123,7 +123,7 @@ class DominoLightEntity(LightEntity):
         try:
             status = await self._getLightStatus()
 
-            _LOGGER.info(f"Update {self._attr_name} status: {status}")
+            _LOGGER.debug(f"Update {self._attr_name} status: {status}")
 
             self._attr_is_on = status
         except Exception as e:
@@ -240,7 +240,7 @@ class DimmerEntity(LightEntity):
             pct = status # 0–100
             bri = int(pct * 255 / 100)
             
-            _LOGGER.info(f"Update {self._attr_name} status: {status} -> brightness={bri}")
+            _LOGGER.debug(f"Update {self._attr_name} status: {status} -> brightness={bri}")
 
             self._attr_brightness = bri
             self._attr_is_on = pct > 0
