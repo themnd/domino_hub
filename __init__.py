@@ -28,12 +28,14 @@ def _get_version() -> str:
     except FileNotFoundError:
         return "unknown"
 
+
+VERSION = _get_version()
+
 # TODO Update entry annotation
 async def async_setup_entry(hass: HomeAssistant, entry: DominoConfigEntry) -> bool:
     """Set up Domino from a config entry."""
 
-    version = _get_version()
-    _LOGGER.info(f"domino_hub starting - version: {version}")
+    _LOGGER.info(f"domino_hub starting - version: {VERSION}")
 
     comPort = entry.data[CONF_COM_PORT]
     comBaud = entry.data[CONF_COM_BAUD]
