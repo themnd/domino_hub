@@ -7,4 +7,5 @@ sudo mkdir -p ${DST}
 sudo rm -rf ${DST}/*
 sudo cp *.py ${DST}/
 sudo cp *.json ${DST}/
+sudo cp version.txt ${DST}/ 2>/dev/null || true
 ls -al ${DST}/

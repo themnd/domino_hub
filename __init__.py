@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+import os
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -9,28 +12,28 @@ from homeassistant.core import HomeAssistant
 from .dominoService import DominoService
 from .const import CONF_COM_PORT, CONF_COM_BAUD
 
-# TODO List the platforms that you want to support.
-# For your initial PR, limit it to 1 platform.
+_LOGGER = logging.getLogger(__name__)
+
 _PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.LIGHT, Platform.COVER]
 
-# TODO Create ConfigEntry type alias with API object
-# TODO Rename type alias and update all entry annotations
 type DominoConfigEntry = ConfigEntry[None]  # noqa: F821
 
-# def setup(hass, config):
-#     #hass.states.set("domino_hub.world", "Paulus")
 
-#     # Return boolean to indicate that initialization was successful.
-#     return True
+def _get_version() -> str:
+    """Read version from version.txt."""
+    version_file = os.path.join(os.path.dirname(__file__), "version.txt")
+    try:
+        with open(version_file) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return "unknown"
 
 # TODO Update entry annotation
 async def async_setup_entry(hass: HomeAssistant, entry: DominoConfigEntry) -> bool:
     """Set up Domino from a config entry."""
 
-    # TODO 1. Create API instance
-    # TODO 2. Validate the API connection (and authentication)
-    # TODO 3. Store an API object for your platforms to access
-    # entry.runtime_data = MyAPI(...)
+    version = _get_version()
+    _LOGGER.info(f"domino_hub starting - version: {version}")
 
     comPort = entry.data[CONF_COM_PORT]
     comBaud = entry.data[CONF_COM_BAUD]
