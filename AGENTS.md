@@ -67,3 +67,22 @@ This is a custom Home Assistant integration for a Domino serial hub that control
 - Run `./releaseToProd.sh` to deploy changes to the server
 - Script SSHes into server, runs `git pull`, then `release.sh`
 - `release.sh` uses sudo to copy files to `/opt/stacks/hass/config/custom_components/domino_hub/`
+- Server SSH key passphrase is typed interactively via `ssh -t`
+
+### Configuration Backup
+
+- Backup of HA `configuration.yaml` is stored in `config/configuration.yaml`
+- The `domino_hub:` YAML block was removed from `configuration.yaml` (integration uses config flow only)
+- Sudoers configured for openhabian: `mkdir`, `rm`, `cp`, `ls` (NOPASSWD)
+
+### Known Fixes Applied
+
+- `exchangeMsg()` validates response length ≥6 and raises `DominoCommunicationError` instead of returning None
+- `_open_close_lock` (threading.Lock) added around `openCount` and serial port open/close
+- `MeteoSensorTemp.update()` validates -20 to +60°C range, skips bad readings, averages only valid values
+- `MeteoSensorLux.update()` validates 0–100,000 lx range, skips bad readings, keeps stale value
+- `readMessage()` now waits for ≥6 bytes before reading (prevents partial serial responses)
+- `async_update()` errors downgraded from ERROR to WARNING (transient serial failures)
+- `domino_hub:` YAML block removed from `configuration.yaml`
+- Rain sensor state corrected from `"off"` to `"No Rain"`
+- `set_cover_position_down` script position changed from 100 to 0
