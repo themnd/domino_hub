@@ -120,15 +120,21 @@ class MeteoSensorLux(SensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        maxLux = 0
+        maxLux = None
         for meteo in self._meteos:
           status = meteo.status(self._domService)
           _LOGGER.debug(f"Meteo status: {status}")
           lux = status.getLux()
-          if (lux > maxLux):
+          if (lux < 0 or lux > 100000):
+              _LOGGER.warning(f"Illuminance value {lux} lx for {self._attr_name} is out of expected range. Skipping.")
+              continue
+          if (maxLux is None or lux > maxLux):
             maxLux = lux
-        _LOGGER.debug(f"External illuminance: {maxLux}")
-        self._attr_native_value = maxLux
+        if maxLux is not None:
+            _LOGGER.debug(f"External illuminance: {maxLux}")
+            self._attr_native_value = maxLux
+        else:
+            _LOGGER.warning(f"No valid illuminance readings for {self._attr_name}")
 
 class MeteoSensorTemp(SensorEntity):
     """Representation of a Sensor."""
