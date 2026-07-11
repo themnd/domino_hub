@@ -464,8 +464,7 @@ class MotorContainer:
   def _setPosition(self, ser, num, pct):
     d1 = 0x01 if num == 1 else 0x02
     pct = min(max(0, pct), 100)
-    #d2 = int(pct * 55 / 100)
-    d2 = int(pct * 50 / 100)
+    d2 = pct
     _LOGGER.info(f"setPosition on {self.mod}, num: {num}, pct: {pct}, d2: {d2}, d2hex: {hex(d2)}")
     return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = d1, d2 = d2))
 
