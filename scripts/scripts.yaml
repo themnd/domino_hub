@@ -1,0 +1,43 @@
+set_awning_position_mid:
+  sequence:
+  - action: cover.set_cover_position
+    metadata: {}
+    data:
+      position: 70
+    target:
+      entity_id:
+      - cover.tenda_cucina
+      - cover.tenda_soggiorno
+      - cover.tenda_camera_matrimoniale
+  alias: set_awning_position_mid
+  description: ''
+set_awning_position_down:
+  alias: set_awning_position_down
+  description: ''
+  sequence:
+  - action: cover.set_cover_position
+    metadata: {}
+    data:
+      position: 0
+    target:
+      entity_id:
+      - cover.tenda_cucina
+      - cover.tenda_soggiorno
+      - cover.tenda_camera_matrimoniale
+      - cover.tenda_camera_francesco_sx
+      - cover.tenda_camera_francesco_dx
+set_awning_position_up:
+  sequence:
+  - action: cover.set_cover_position
+    metadata: {}
+    data:
+      position: 100
+    target:
+      entity_id:
+      - cover.tenda_cucina
+      - cover.tenda_soggiorno
+      - cover.tenda_camera_matrimoniale
+      - cover.tenda_camera_francesco_sx
+      - cover.tenda_camera_francesco_dx
+  alias: set_awning_position_up
+  description: ''
