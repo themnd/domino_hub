@@ -1,0 +1,12 @@
+id: holiday_cover_close
+alias: "Holiday: Close Tapparella Sala Finestra"
+description: "Closes cover.tapparella_sala_finestra at 18:00. Enable when on holiday."
+trigger:
+  - platform: time
+    at: "18:00:00"
+condition: []
+action:
+  - action: cover.close_cover
+    target:
+      entity_id: cover.tapparella_sala_finestra
+mode: single

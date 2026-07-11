@@ -1,0 +1,28 @@
+id: cover_down_bad_weather
+alias: "Bring Down Covers on Bad Weather"
+description: >-
+  Brings down covers on rain, wind gust > 15 km/h, wind gust > 10 km/h for 20 min,
+  illuminance < 6000 lx for 20 min, or illuminance < 4000 lx for 5 min.
+trigger:
+  - platform: state
+    entity_id: sensor.external_rain
+    to: "Rain"
+  - platform: numeric_state
+    entity_id: sensor.gw1200a_wind_gust
+    above: 15
+  - platform: numeric_state
+    entity_id: sensor.gw1200a_wind_gust
+    above: 10
+    for: "00:20:00"
+  - platform: numeric_state
+    entity_id: sensor.external_illuminance
+    below: 6000
+    for: "00:20:00"
+  - platform: numeric_state
+    entity_id: sensor.external_illuminance
+    below: 4000
+    for: "00:05:00"
+condition: []
+action:
+  - service: script.set_cover_position_up
+mode: single

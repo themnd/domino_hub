@@ -1,0 +1,24 @@
+id: cover_down_at_noon
+alias: "Bring Down Covers at Noon"
+description: >-
+  Brings down covers at 13:30 CET if external temperature > 25°C,
+  illuminance > 7000 lx, no rain, and wind gust < 10 km/h.
+trigger:
+  - platform: time
+    at: "13:30:00"
+condition:
+  - condition: numeric_state
+    entity_id: sensor.external_temperature
+    above: 25
+  - condition: numeric_state
+    entity_id: sensor.external_illuminance
+    above: 7000
+  - condition: state
+    entity_id: sensor.external_rain
+    state: "No Rain"
+  - condition: numeric_state
+    entity_id: sensor.gw1200a_wind_gust
+    below: 10
+action:
+  - service: script.set_cover_position_down
+mode: single

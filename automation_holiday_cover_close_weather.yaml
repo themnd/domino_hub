@@ -1,0 +1,17 @@
+id: holiday_cover_close_weather
+alias: "Holiday: Close Tapparella on Rain+Wind"
+description: >-
+  Closes cover.tapparella_sala_finestra if it rains and wind speed > 10 km/h
+  or gust > 15 km/h. Enable when on holiday.
+trigger:
+  - platform: template
+    value_template: >-
+      {{ states('sensor.external_rain') == 'Rain' and
+         (states('sensor.gw1200a_wind_speed') | float > 10 or
+          states('sensor.gw1200a_wind_gust') | float > 15) }}
+condition: []
+action:
+  - action: cover.close_cover
+    target:
+      entity_id: cover.tapparella_sala_finestra
+mode: single
