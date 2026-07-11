@@ -136,10 +136,13 @@ class DominoCoverEntity(CoverEntity):
         self._attr_is_closed = True
         
     def set_cover_position(self, **kwargs: Any) -> None:
-        """Move the cover to a specific position."""
+        """Move the cover to a specific position (0=open, 100=closed)."""
         position = kwargs.get("position")
         if position is not None:
-            self._motor.setPosition(self._domService, 100 - position)
+            open_pos = self._getOpenPosition()
+            close_pos = self._getClosePosition()
+            motor_pos = round(open_pos + (close_pos - open_pos) * position / 100)
+            self._motor.setPosition(self._domService, motor_pos)
 
     def stop_cover(self, **kwargs: Any) -> None:
         """Stop the cover."""
