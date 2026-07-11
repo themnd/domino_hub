@@ -112,7 +112,7 @@ class DominoCoverEntity(CoverEntity):
             self._attr_is_closing = status == MotorContainer.MotorStatus.MotorMovement.CLOSING
             #self._attr_current_cover_position = status
         except Exception as e:
-            _LOGGER.error(f"Error updating {self._attr_name}: {e}")
+            _LOGGER.warning(f"Error updating {self._attr_name}: {e}")
     
     async def async_added_to_hass(self):
         """Called when entity is added to Home Assistant."""

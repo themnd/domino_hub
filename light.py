@@ -127,7 +127,7 @@ class DominoLightEntity(LightEntity):
 
             self._attr_is_on = status
         except Exception as e:
-            _LOGGER.error(f"Error updating {self._attr_name}: {e}")
+            _LOGGER.warning(f"Error updating {self._attr_name}: {e}")
     
     async def async_added_to_hass(self):
         """Called when entity is added to Home Assistant."""
@@ -248,7 +248,7 @@ class DimmerEntity(LightEntity):
                 self._attr_prev_brightness = self._attr_brightness
 
         except Exception as e:
-            _LOGGER.error(f"Error updating {self._attr_name}: {e}")
+            _LOGGER.warning(f"Error updating {self._attr_name}: {e}")
     
     async def async_added_to_hass(self):
         """Called when entity is added to Home Assistant."""
