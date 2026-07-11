@@ -461,11 +461,24 @@ class MotorContainer:
     finally:
       svc.close()
 
+  def setRawD2(self, svc: DominoService, num, d2):
+    ser = svc.open()
+    try:
+      return self._setRawD2(ser, num, d2)
+    finally:
+      svc.close()
+
   def _setPosition(self, ser, num, pct):
     d1 = 0x01 if num == 1 else 0x02
     pct = min(max(0, pct), 100)
     d2 = int(pct * 50 / 100)
     _LOGGER.info(f"setPosition on {self.mod}, num: {num}, pct: {pct}, d2: {d2}, d2hex: {hex(d2)}")
+    return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = d1, d2 = d2))
+
+  def _setRawD2(self, ser, num, d2):
+    d1 = 0x01 if num == 1 else 0x02
+    d2 = min(max(0, d2), 50)
+    _LOGGER.info(f"setRawD2 on {self.mod}, num: {num}, d2: {d2}, d2hex: {hex(d2)}")
     return exchangeMsg(ser, sendReqStatus(self.mod, 0x10, d1 = d1, d2 = d2))
 
   def doOpen(self, svc: DominoService, num):
@@ -542,6 +555,9 @@ class Motor:
   
   def setPosition(self, svc: DominoService, pct):
     self.motor.setPosition(svc, self.num, pct)
+
+  def setRawD2(self, svc: DominoService, d2):
+    self.motor.setRawD2(svc, self.num, d2)
   
   def doOpen(self, svc: DominoService):
     self.motor.doOpen(svc, self.num)

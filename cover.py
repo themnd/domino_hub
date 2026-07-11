@@ -222,11 +222,11 @@ class DominoShutterEntity(DominoCoverEntity):
         position = min(max(0, position), 100)
 
         if position <= 0:
-            self._motor.setPosition(self._domService, 0)
+            self._motor.doOpen(self._domService)
         else:
             d2 = self._position_to_d2(position)
             _LOGGER.info(f"Shutter {self._attr_name}: position={position} -> d2={d2}")
-            self._motor.setPosition(self._domService, d2)
+            self._motor.setRawD2(self._domService, d2)
 
         self._attr_is_closed = position >= 50
 
