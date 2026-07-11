@@ -45,7 +45,7 @@ async def async_setup_entry(
     meteos = [Meteo(80), Meteo(90)]
     sensors.append(MeteoSensorTemp(domService, meteos, "External Temperature"))
     sensors.append(MeteoSensorLux(domService, meteos, "External Illuminance"))
-    sensors.append(MeteoSensorWind(domService, meteos, "External Wind Speed"))
+    #sensors.append(MeteoSensorWind(domService, meteos, "External Wind Speed"))
     sensors.append(MeteoSensorRain(domService, meteos, "External Rain"))
 
     async_add_entities(sensors)
