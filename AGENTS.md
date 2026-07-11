@@ -42,6 +42,26 @@ This is a custom Home Assistant integration for a Domino serial hub that control
 - `DominoShutterEntity._getOpenPosition()` returns 0, `_getClosePosition()` returns 100
 - Covers take ~25-30 seconds to travel fully open to close (or vice versa) — wait at least 30s between open/close and set_position commands
 
+### Shutter Position Mapping (d2 values, from fully open)
+
+d2 is not a target position — it behaves as a speed/duration value. Tested on cover.tapparella_camera_matrimoniale (motor19, num1):
+
+| d2 | d2hex | Result (from fully open) |
+|---|---|---|
+| 0 | 0x0 | Fully open |
+| 10 | 0xa | No movement |
+| 11 | 0xb | ~75% closed |
+| 12 | 0xc | ~80% closed |
+| 13 | 0xd | ~85% closed |
+| 14 | 0xe | ~90% closed |
+| 15 | 0xf | ~95% closed |
+| 16 | 0x10 | ~98% closed |
+| 17+ | | Fully closed |
+
+- Roughly ~5% per d2 step in the 12-16 range
+- `_setPosition` scales: `d2 = int(pct * 50 / 100)`
+- To set 80% closed: d2=12 → pct=24 (position=24 in HA)
+
 ### Sensor Entity IDs
 
 - `sensor.external_temperature` — External temperature (°C)
