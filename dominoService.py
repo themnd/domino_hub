@@ -7,6 +7,10 @@ import threading
 
 _LOGGER = logging.getLogger(__name__)
 
+
+class DominoCommunicationError(Exception):
+    """Raised when serial communication with the Domino device fails."""
+
 _exchange_lock = threading.Lock() 
 
 def readMessage(ser):
@@ -76,11 +80,12 @@ def exchangeMsg(ser, msg):
       sendMessage(ser, msg)
 
       ans = readMessage(ser)
-      #if (ord(ans[2]) == 0x0 and ord(ans[5]) == 0xf0):
+      if ans is None or len(ans) < 6:
+        raise DominoCommunicationError(f"Invalid response: expected at least 6 bytes, got {len(ans) if ans else 0}")
       if (ans[2] == 0x0 and ans[5] == 0xf0):
-        return None
+        raise DominoCommunicationError("Device returned error code 0xf0")
       if (ans[2] == 0x0 and ans[5] == 0xff):
-        return None
+        raise DominoCommunicationError("Device returned error code 0xff")
       dumpMessage(ans)
       return ans
 
@@ -102,28 +107,28 @@ class DominoService:
   
   def open(self):
     with self._open_close_lock:
-    if (self.ser is None):
-      self.ser = serial.Serial(self.com_port, baudrate = self.com_baud,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS,
-            rtscts=False,
-            dsrdtr=False,
-            xonxoff=False,
-            timeout=5)
-    self.openCount += 1
+      if (self.ser is None):
+        self.ser = serial.Serial(self.com_port, baudrate = self.com_baud,
+              parity=serial.PARITY_NONE,
+              stopbits=serial.STOPBITS_ONE,
+              bytesize=serial.EIGHTBITS,
+              rtscts=False,
+              dsrdtr=False,
+              xonxoff=False,
+              timeout=5)
+      self.openCount += 1
     _LOGGER.debug(f"DominoService open called. openCount: {self.openCount}")
     return self.ser
 
   def close(self):
     with self._open_close_lock:
-    if (self.ser is not None):
-      self.openCount -= 1
-      _LOGGER.debug(f"DominoService close called. openCount: {self.openCount}")
-      if (self.openCount == 0):
-        self.ser.close()
-        self.ser = None
-        _LOGGER.debug("DominoService serial connection closed.")
+      if (self.ser is not None):
+        self.openCount -= 1
+        _LOGGER.debug(f"DominoService close called. openCount: {self.openCount}")
+        if (self.openCount == 0):
+          self.ser.close()
+          self.ser = None
+          _LOGGER.debug("DominoService serial connection closed.")
 
 class RoomTemperature:
   def __init__(self, mod):
