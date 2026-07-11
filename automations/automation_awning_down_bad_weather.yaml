@@ -1,7 +1,7 @@
-id: cover_down_bad_weather
-alias: "Bring Down Covers on Bad Weather"
+id: awning_down_bad_weather
+alias: "Bring Down Awnings on Bad Weather"
 description: >-
-  Brings down covers on rain, wind gust > 15 km/h, wind gust > 10 km/h for 20 min,
+  Brings down awnings on rain, wind gust > 15 km/h, wind gust > 10 km/h for 20 min,
   illuminance < 6000 lx for 20 min, or illuminance < 4000 lx for 5 min.
 trigger:
   - platform: state
@@ -24,5 +24,5 @@ trigger:
     for: "00:05:00"
 condition: []
 action:
-  - service: script.set_cover_position_up
+  - service: script.set_awning_position_up
 mode: single

@@ -1,7 +1,7 @@
-id: cover_down_at_noon
-alias: "Bring Down Covers at Noon"
+id: awning_down_at_noon
+alias: "Bring Down Awnings at Noon"
 description: >-
-  Brings down covers at 13:30 CET if external temperature > 25°C,
+  Brings down awnings at 13:30 CET if external temperature > 25°C,
   illuminance > 7000 lx, no rain, and wind gust < 10 km/h.
 trigger:
   - platform: time
@@ -20,5 +20,5 @@ condition:
     entity_id: sensor.gw1200a_wind_gust
     below: 10
 action:
-  - service: script.set_cover_position_down
+  - service: script.set_awning_position_down
 mode: single
