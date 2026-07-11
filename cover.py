@@ -27,19 +27,33 @@ async def async_setup_entry(
     # Retrieve the shared API instance created in __init__.py
     domService: DominoService = entry.runtime_data
 
-    motor1 = MotorContainer(17)
-    motor2 = MotorContainer(19)
-    motor3 = MotorContainer(20)
+    motor16 = MotorContainer(16)
+    motor17 = MotorContainer(17)
+    motor18 = MotorContainer(18)
+    motor19 = MotorContainer(19)
+    motor20 = MotorContainer(20)
+    motor21 = MotorContainer(21)
 
     tende = [
-        DominoAwningEntity(domService, Motor(motor1, 1), "Tenda - Cucina", "tenda_cucina"),
-        DominoAwningEntity(domService, Motor(motor1, 2), "Tenda - Soggiorno", "tenda_soggiorno"),
-        DominoAwningEntity(domService, Motor(motor2, 2), "Tenda - Camera Matrimoniale", "tenda_camera_matrimoniale"),
-        DominoAwningEntity(domService, Motor(motor3, 1), "Tenda - Camera Francesco sx", "tenda_camera_francesco_sx"),
-        DominoAwningEntity(domService, Motor(motor3, 2), "Tenda - Camera Francesco dx", "tenda_camera_francesco_dx"),
+        DominoAwningEntity(domService, Motor(motor17, 1), "Tenda - Cucina", "tenda_cucina"),
+        DominoAwningEntity(domService, Motor(motor17, 2), "Tenda - Soggiorno", "tenda_soggiorno"),
+        DominoAwningEntity(domService, Motor(motor19, 2), "Tenda - Camera Matrimoniale", "tenda_camera_matrimoniale"),
+        DominoAwningEntity(domService, Motor(motor20, 1), "Tenda - Camera Francesco sx", "tenda_camera_francesco_sx"),
+        DominoAwningEntity(domService, Motor(motor20, 2), "Tenda - Camera Francesco dx", "tenda_camera_francesco_dx"),
+    ]
+
+    tapparelle = [
+        DominoShutterEntity(domService, Motor(motor16, 1), "Tapparella - Bagno", "tapparella_bagno"),
+        DominoShutterEntity(domService, Motor(motor16, 2), "Tapparella - Sala finestra", "tapparella_sala_finestra"),
+        DominoShutterEntity(domService, Motor(motor18, 1), "Tapparella - Cucina", "tapparella_cucina"),
+        DominoShutterEntity(domService, Motor(motor18, 2), "Tapparella - Sala", "tapparella_sala_balcone"),
+        DominoShutterEntity(domService, Motor(motor19, 1), "Tapparella - Camera Matrimoniale", "tapparella_camera_matrimoniale"),
+        DominoShutterEntity(domService, Motor(motor21, 1), "Tapparella - Camera Francesco", "tapparella_camera_francesco"),
+        DominoShutterEntity(domService, Motor(motor21, 2), "Tapparella - Camera Letizia", "tapparella_camera_letizia")
     ]
 
     async_add_entities(tende)
+    async_add_entities(tapparelle)
 
 class DominoCoverEntity(CoverEntity):
     """Representation of a Domino cover."""
@@ -112,13 +126,13 @@ class DominoCoverEntity(CoverEntity):
     def open_cover(self, **kwargs: Any) -> None:
         """Open the cover."""
         #self._motor.doOpen(self._domService)
-        self._motor.setPosition(self._domService, 100)
+        self._motor.setPosition(self._domService, self._getOpenPosition())
         self._attr_is_closed = False
 
     def close_cover(self, **kwargs: Any) -> None:
         """Close cover."""
         #self._motor.doClose(self._domService)
-        self._motor.setPosition(self._domService, 0)
+        self._motor.setPosition(self._domService, self._getClosePosition())
         self._attr_is_closed = True
         
     def set_cover_position(self, **kwargs: Any) -> None:
@@ -148,7 +162,13 @@ class DominoCoverEntity(CoverEntity):
         return await self.hass.async_add_executor_job(self._motor.status, self._domService) 
 
     async def _setCover(self, pct):
-        return await self.hass.async_add_executor_job(self._motor.setPosition, self._domService, pct) 
+        return await self.hass.async_add_executor_job(self._motor.setPosition, self._domService, pct)
+    
+    def _getOpenPosition(self):
+        return 100
+
+    def _getClosePosition(self):
+        return 0
 
 class DominoAwningEntity(DominoCoverEntity):
     """Representation of a Domino cover."""
@@ -157,3 +177,17 @@ class DominoAwningEntity(DominoCoverEntity):
 
     def __init__(self, domService: DominoService, motor: Motor, name: str, deviceId: str) -> None:
         super().__init__(domService, motor, name, deviceId, "Domino Hub - Tende")
+
+class DominoShutterEntity(DominoCoverEntity):
+    """Representation of a Domino cover."""
+
+    _attr_device_class = CoverDeviceClass.SHUTTER
+
+    def __init__(self, domService: DominoService, motor: Motor, name: str, deviceId: str) -> None:
+        super().__init__(domService, motor, name, deviceId, "Domino Hub - Tapparelle")
+
+    def _getOpenPosition(self):
+        return 0
+
+    def _getClosePosition(self):
+        return 100

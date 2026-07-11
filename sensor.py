@@ -93,7 +93,7 @@ class MeteoSensorWind(SensorEntity):
           wind = 0
         else:
           wind = maxWind
-        _LOGGER.info(f"External wind speed: {wind} - max: {maxWind} - min: {minWind}")
+        _LOGGER.debug(f"External wind speed: {wind} - max: {maxWind} - min: {minWind}")
         self._attr_native_value = wind
 
 class MeteoSensorLux(SensorEntity):
