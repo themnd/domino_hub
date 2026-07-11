@@ -10,10 +10,6 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 
-domino_hub:
-  comPort: '/dev/ttyUSB0'
-  comBaud: 19200
-
 #sensor:
 #  - platform: domino_hub
 #    comPort: '/dev/ttyUSB0'
