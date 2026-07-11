@@ -97,9 +97,11 @@ class DominoService:
     self.com_baud = com_baud
     self.ser = None
     self.openCount = 0
+    self._open_close_lock = threading.Lock()
     _LOGGER.info(f"DominoService initialized with com_port: {com_port}, com_baud: {com_baud}")
   
   def open(self):
+    with self._open_close_lock:
     if (self.ser is None):
       self.ser = serial.Serial(self.com_port, baudrate = self.com_baud,
             parity=serial.PARITY_NONE,
@@ -114,6 +116,7 @@ class DominoService:
     return self.ser
 
   def close(self):
+    with self._open_close_lock:
     if (self.ser is not None):
       self.openCount -= 1
       _LOGGER.debug(f"DominoService close called. openCount: {self.openCount}")
