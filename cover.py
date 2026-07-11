@@ -186,8 +186,73 @@ class DominoShutterEntity(DominoCoverEntity):
 
     _attr_device_class = CoverDeviceClass.SHUTTER
 
+    # d2 values mapped to percentage closed from fully open (tested on motor19, num1)
+    # d2=0: fully open, d2=17: fully closed
+    # This mapping assumes starting from fully open position.
+    _D2_MAP = [
+        (0,   0),   # 0% closed
+        (10,  1),   # 10% closed
+        (20,  2),   # 20% closed
+        (25,  3),   # 25% closed
+        (30,  4),   # 30% closed
+        (40,  5),   # 40% closed
+        (50,  6),   # 50% closed
+        (55,  7),   # 55% closed (estimated)
+        (60,  8),   # 60% closed (estimated)
+        (65,  9),   # 65% closed (estimated)
+        (70, 10),   # 70% closed
+        (75, 11),   # 75% closed
+        (80, 12),   # 80% closed
+        (85, 13),   # 85% closed
+        (90, 14),   # 90% closed
+        (95, 15),   # 95% closed
+        (98, 16),   # 98% closed
+        (100, 25),  # 100% closed (use high d2 to ensure full closure from any position)
+    ]
+
     def __init__(self, domService: DominoService, motor: Motor, name: str, deviceId: str) -> None:
         super().__init__(domService, motor, name, deviceId, "Domino Hub - Tapparelle")
+
+    def set_cover_position(self, **kwargs: Any) -> None:
+        """Move the shutter to a specific position (0=open, 100=closed)."""
+        position = kwargs.get("position")
+        if position is None:
+            return
+
+        position = min(max(0, position), 100)
+
+        if position <= 0:
+            self._motor.setPosition(self._domService, 0)
+        else:
+            d2 = self._position_to_d2(position)
+            _LOGGER.info(f"Shutter {self._attr_name}: position={position} -> d2={d2}")
+            self._motor.setPosition(self._domService, d2)
+
+        self._attr_is_closed = position >= 50
+
+    def _position_to_d2(self, position):
+        """Map HA position (0-100, 0=open, 100=closed) to d2 value.
+        
+        Uses tested mapping from fully open position.
+        Linear interpolation between known data points.
+        Position 100 uses d2=25 to ensure full closure from any starting position.
+        """
+        if position <= 0:
+            return 0
+        if position >= 100:
+            return 25  # High value to guarantee full closure from any position
+
+        map_list = self._D2_MAP
+
+        for i in range(len(map_list) - 1):
+            p1, d1 = map_list[i]
+            p2, d2_val = map_list[i + 1]
+            if p1 <= position <= p2:
+                if p2 == p1:
+                    return d1
+                return d1 + round((d2_val - d1) * (position - p1) / (p2 - p1))
+
+        return map_list[-1][1]
 
     def _getOpenPosition(self):
         return 0

@@ -48,19 +48,29 @@ d2 is not a target position — it behaves as a speed/duration value. Tested on 
 
 | d2 | d2hex | Result (from fully open) |
 |---|---|---|
-| 0 | 0x0 | Fully open |
-| 10 | 0xa | No movement |
+| 0 | 0x0 | 0% closed (fully open) |
+| 1 | 0x1 | ~10% closed |
+| 2 | 0x2 | ~20% closed |
+| 3 | 0x3 | ~25% closed |
+| 4 | 0x4 | ~30% closed |
+| 5 | 0x5 | ~40% closed |
+| 6 | 0x6 | ~50% closed |
+| 7 | 0x7 | ~55% closed (estimated) |
+| 8 | 0x8 | ~60% closed (estimated) |
+| 9 | 0x9 | ~65% closed (estimated) |
+| 10 | 0xa | ~70% closed |
 | 11 | 0xb | ~75% closed |
 | 12 | 0xc | ~80% closed |
 | 13 | 0xd | ~85% closed |
 | 14 | 0xe | ~90% closed |
 | 15 | 0xf | ~95% closed |
 | 16 | 0x10 | ~98% closed |
-| 17+ | | Fully closed |
+| 17 | 0x11 | 100% closed (fully closed) |
 
-- Roughly ~5% per d2 step in the 12-16 range
-- `_setPosition` scales: `d2 = int(pct * 50 / 100)`
-- To set 80% closed: d2=12 → pct=24 (position=24 in HA)
+- ~5% per d2 step in the 10-15 range
+- ~10% per d2 step in the 1-6 range (except d2=3,4)
+- Tested with 30+ second sleep from fully open between commands
+- `DominoShutterEntity._position_to_d2()` uses interpolation from this table
 
 ### Sensor Entity IDs
 
