@@ -14,27 +14,29 @@ class DominoCommunicationError(Exception):
 _exchange_lock = threading.Lock() 
 
 def readMessage(ser):
-  #maxWait = 20
-  #timeToSleep = 0.5
-  #maxWait = 40
-  #timeToSleep = 0.25
-  maxWait = 100
-  wait = maxWait
+  minBytes = 6
+  maxWaitInitial = 100
+  maxWaitMore = 5
   timeToSleep = 0.1
+
   bytesToRead = ser.inWaiting()
-  #print ('bytesToRead: ' + str(bytesToRead))
-  while (bytesToRead == 0):
+  wait = maxWaitInitial
+  while bytesToRead == 0:
     time.sleep(timeToSleep)
     bytesToRead = ser.inWaiting()
-    #print ('bytesToRead: ' + str(bytesToRead))
     wait -= 1
-    if (wait == 0):
-      raise Exception("timeout")
-  if (bytesToRead > 0):
-    #_LOGGER.info("Reading " + str(bytesToRead) + " bytes from serial after waiting " + str((maxWait - wait) * timeToSleep) + " seconds")
-    return ser.read(bytesToRead)
-  else:
-    return None
+    if wait == 0:
+      raise Exception("timeout waiting for response")
+
+  waitMore = maxWaitMore
+  while bytesToRead < minBytes:
+    time.sleep(timeToSleep)
+    bytesToRead = ser.inWaiting()
+    waitMore -= 1
+    if waitMore == 0:
+      break
+
+  return ser.read(bytesToRead)
 
 def calcMessage(values):
   c = 0
