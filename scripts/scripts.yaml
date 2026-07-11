@@ -48,6 +48,6 @@ set_tapparella_camera_matrimoniale_85:
   - action: cover.set_cover_position
     metadata: {}
     data:
-      position: 26
+      position: 85
     target:
       entity_id: cover.tapparella_camera_matrimoniale
