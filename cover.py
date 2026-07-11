@@ -181,23 +181,6 @@ class DominoAwningEntity(DominoCoverEntity):
     def __init__(self, domService: DominoService, motor: Motor, name: str, deviceId: str) -> None:
         super().__init__(domService, motor, name, deviceId, "Domino Hub - Tende")
 
-    def open_cover(self, **kwargs: Any) -> None:
-        """Open the awning (motor position 50 = fully open)."""
-        self._motor.setPosition(self._domService, 50)
-        self._attr_is_closed = False
-
-    def close_cover(self, **kwargs: Any) -> None:
-        """Close the awning (motor position 0 = fully closed)."""
-        self._motor.setPosition(self._domService, 0)
-        self._attr_is_closed = True
-
-    def set_cover_position(self, **kwargs: Any) -> None:
-        """Move the awning to a specific position (0=open, 100=closed)."""
-        position = kwargs.get("position")
-        if position is not None:
-            motor_pos = round(50 * (100 - position) / 100)
-            self._motor.setPosition(self._domService, motor_pos)
-
 class DominoShutterEntity(DominoCoverEntity):
     """Representation of a Domino cover."""
 

@@ -40,6 +40,7 @@ This is a custom Home Assistant integration for a Domino serial hub that control
 - Awnings: position 0 = closed, 100 = open
 - Shutters: position 0 = open, 100 = closed
 - `DominoShutterEntity._getOpenPosition()` returns 0, `_getClosePosition()` returns 100
+- Covers take ~25-30 seconds to travel fully open to close (or vice versa) — wait at least 30s between open/close and set_position commands
 
 ### Sensor Entity IDs
 
